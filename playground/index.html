@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Worker Decoder Utils - Playground</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            margin: 10px;
+            padding: 8px 16px;
+            background-color: #4a6cf7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3a5be7;
+        }
+        #output {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            min-height: 100px;
+            max-height: 300px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+        .preview {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .preview img {
+            max-width: 100%;
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Worker Decoder Utils</h1>
+        <div>
+            <h2>Demo Controls</h2>
+            <button id="testSync">Test Sync Strategy</button>
+            <button id="testDedicated">Test Dedicated Worker</button>
+            <button id="testShared">Test Shared Worker</button>
+        </div>
+        <pre id="output"></pre>
+
+        <div class="preview">
+            <h2>Preview</h2>
+            <div id="imageContainer"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { bufferToBlobUrl } from '../src/buffer';
+
+        const outputEl = document.getElementById('output');
+        const imageContainer = document.getElementById('imageContainer');
+
+        function log(message) {
+            console.log(message);
+            outputEl.textContent += message + '\n';
+        }
+
+        // Create a 1x1 pixel PNG as test data
+        function createTestImage() {
+            // Minimal valid PNG data for a 1x1 transparent pixel
+            return [new Uint8Array([
+                0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+                0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+                0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+                0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
+                0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+                0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+            ])];
+        }
+
+        // Create regular test data for non-image testing
+        function createTestData() {
+            return [new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])];
+        }
+
+        // Test with a specific strategy
+        async function testWithStrategy(strategy) {
+            try {
+                log(`Testing ${strategy} strategy...`);
+
+                // Use PNG image data for visualization
+                const imageChunks = createTestImage();
+                const result = strategy === 'sync'
+                    ? bufferToBlobUrl(imageChunks, 'image/png', strategy)
+                    : await bufferToBlobUrl(imageChunks, 'image/png', strategy);
+
+                log(`Success! Blob URL: ${result}`);
+
+                // Display the image
+                displayImage(result, strategy);
+
+                return result;
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                throw error;
+            }
+        }
+
+        // Display an image from a blob URL
+        function displayImage(blobUrl, label) {
+            const img = new Image();
+            img.src = blobUrl;
+            img.alt = `Image from ${label} strategy`;
+            img.title = blobUrl;
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `<strong>${label} strategy result:</strong>`;
+            wrapper.appendChild(img);
+
+            // Clear previous images
+            if (label === 'sync') {
+                imageContainer.innerHTML = '';
+            }
+
+            imageContainer.appendChild(wrapper);
+        }
+
+        // Set up UI event handlers
+        document.getElementById('testSync').addEventListener('click', () => testWithStrategy('sync'));
+        document.getElementById('testDedicated').addEventListener('click', () => testWithStrategy('dedicated'));
+        document.getElementById('testShared').addEventListener('click', () => testWithStrategy('shared'));
+
+        // Test function for e2e tests - returns both image and regular data results
+        window.testStrategy = async (strategy, customChunks = null) => {
+            try {
+                // For testing binary data
+                const chunks = customChunks || createTestData();
+                const binaryUrl = strategy === 'sync'
+                    ? bufferToBlobUrl(chunks, 'application/octet-stream', strategy)
+                    : await bufferToBlobUrl(chunks, 'application/octet-stream', strategy);
+
+                // For testing images
+                const imageChunks = createTestImage();
+                const imageUrl = strategy === 'sync'
+                    ? bufferToBlobUrl(imageChunks, 'image/png', strategy)
+                    : await bufferToBlobUrl(imageChunks, 'image/png', strategy);
+
+                return {
+                    success: true,
+                    url: binaryUrl,
+                    imageUrl: imageUrl
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        };
+
+        log('Playground loaded and ready!');
+    </script>
+</body>
+</html>

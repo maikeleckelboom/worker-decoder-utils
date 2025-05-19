@@ -1,0 +1,40 @@
+{
+  "name": "worker-decoder-utils",
+  "type": "module",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/bun": "latest",
+    "@vitest/browser": "^3.1.3",
+    "happy-dom": "^17.4.7",
+    "playwright": "^1.52.0",
+    "prettier": "^3.5.3",
+    "tsup": "^8.5.0",
+    "typescript": "latest",
+    "vite": "^latest",
+    "vitest": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "vite playground",
+    "serve-playground": "vite --build playground && vite preview",
+    "test": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "prettier --check .",
+    "test:browser": "vitest --workspace=vitest.workspace.ts"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.1"
+  }
+}
